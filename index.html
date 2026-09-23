@@ -6,19 +6,13 @@
     <title>Manajemen RICEF SAP</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Konfigurasi Tailwind untuk Tema Material UI -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        mui: {
-                            primary: '#1976d2',
-                            primaryHover: '#1565c0',
-                            darkBg: '#121212',
-                            darkSurface: '#1e1e1e',
-                        }
+                        mui: { primary: '#1976d2', primaryHover: '#1565c0', darkBg: '#121212', darkSurface: '#1e1e1e' }
                     },
                     boxShadow: {
                         'mui-1': '0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)',
@@ -30,24 +24,21 @@
     </script>
     <!-- Google Fonts: Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- DataTables Tailwind CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.tailwindcss.css">
     
+    <!-- AG GRID CDN (Menggantikan DataTables & jQuery) -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+
     <style>
         body { font-family: 'Roboto', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
-        /* Tweak DataTables agar lebih menyatu dengan Material Design */
-        .dt-search input, .dt-length select {
-            border: 1px solid #c4c4c4 !important;
-            border-radius: 4px !important;
-            padding: 8px 12px !important;
+        
+        /* Menyesuaikan font AG Grid agar seragam dengan font Roboto */
+        .ag-theme-quartz, .ag-theme-quartz-dark {
+            --ag-font-family: 'Roboto', sans-serif;
+            --ag-header-background-color: transparent;
+            border-radius: 4px;
         }
-        .dark .dt-search input, .dark .dt-length select {
-            background-color: #1e1e1e !important;
-            border-color: #424242 !important;
-            color: #ffffff !important;
-        }
-        table.dataTable { border-bottom: 1px solid rgba(224, 224, 224, 1); }
-        .dark table.dataTable { border-bottom: 1px solid rgba(81, 81, 81, 1); }
+        /* Menghapus border luar AG Grid agar menyatu dengan card MUI */
+        .ag-root-wrapper { border: none !important; }
     </style>
 </head>
 <body class="bg-[#f5f5f6] text-[rgba(0,0,0,0.87)] dark:bg-mui-darkBg dark:text-white min-h-screen">
@@ -132,69 +123,115 @@
             </form>
         </div>
 
-        <!-- Table Data Card -->
-        <div class="bg-white dark:bg-mui-darkSurface rounded shadow-mui-1 p-6">
-            <div class="overflow-x-auto">
-                <table id="ricefTable" class="w-full text-left border-collapse text-[rgba(0,0,0,0.87)] dark:text-gray-200">
-                    <thead>
-                        <tr class="border-b border-gray-300 dark:border-gray-600">
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">ID</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">TYPE</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">MODULE</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">PROGRAM NAME</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">DESCRIPTION</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">STATUS</th>
-                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300 text-center">ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm border-b border-gray-200 dark:border-gray-700">
-                        <!-- Data DataTable -->
-                    </tbody>
-                </table>
+        <!-- AG GRID Container -->
+        <div class="bg-white dark:bg-mui-darkSurface rounded shadow-mui-1 p-4">
+            <!-- Kolom pencarian global khusus AG Grid -->
+            <div class="mb-4">
+                <input type="text" id="filter-text-box" placeholder="Search data..." oninput="onFilterTextBoxChanged()" class="w-full md:w-1/3 bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2 text-sm focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition">
             </div>
+            <!-- Div yang akan disuntik AG Grid -->
+            <div id="ricefGrid" class="ag-theme-quartz w-full transition-colors" style="height: 500px;"></div>
         </div>
     </div>
 </div>
 
-<!-- jQuery & DataTables JS -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
-<script src="https://cdn.datatables.net/2.0.3/js/dataTables.tailwindcss.js"></script>
-
 <script>
     // MASUKKAN URL DEPLOYMENT ANDA DI BAWAH INI
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxM39Ofq8lLmyPbStcSIDN7QMpZ77it78P0XsxtMa3Ghp-fhYRdIXqlN8GN5cpwaBLs/exec';
-    let dataTable;
+    let gridApi;
 
-    // --- LOGIKA DARK MODE ---
+    // --- LOGIKA TEMA & DARK MODE AG GRID ---
     function applyTheme() {
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        const isDark = localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const gridDiv = document.getElementById('ricefGrid');
+        
+        if (isDark) {
             document.documentElement.classList.add('dark');
+            if(gridDiv) gridDiv.className = "ag-theme-quartz-dark w-full transition-colors";
         } else {
             document.documentElement.classList.remove('dark');
+            if(gridDiv) gridDiv.className = "ag-theme-quartz w-full transition-colors";
         }
     }
 
     function toggleDarkMode() {
         if (document.documentElement.classList.contains('dark')) {
-            document.documentElement.classList.remove('dark');
             localStorage.theme = 'light';
         } else {
-            document.documentElement.classList.add('dark');
             localStorage.theme = 'dark';
         }
+        applyTheme();
     }
     
-    applyTheme();
+    applyTheme(); // Terapkan saat pertama kali load
 
-    $(document).ready(function() {
-        dataTable = $('#ricefTable').DataTable({
-            responsive: true,
-            language: { search: "Search:", lengthMenu: "Rows per page: _MENU_" }
-        });
+    // --- INISIALISASI AG GRID ---
+    const gridOptions = {
+        rowData: [], // Kosong di awal, akan diisi dari fetch
+        columnDefs: [
+            { field: "ID", headerName: "ID", maxWidth: 180 },
+            { field: "Type", headerName: "TYPE", width: 120, cellRenderer: typeBadgeRenderer },
+            { field: "Module", headerName: "MODULE", width: 100 },
+            { field: "Program_Name", headerName: "PROGRAM NAME", flex: 1 },
+            { field: "Description", headerName: "DESCRIPTION", flex: 2 },
+            { field: "Status", headerName: "STATUS", width: 130, cellRenderer: statusBadgeRenderer },
+            { headerName: "ACTIONS", width: 120, cellRenderer: actionButtonsRenderer, sortable: false, filter: false }
+        ],
+        pagination: true,
+        paginationPageSize: 10,
+        paginationPageSizeSelector: [10, 25, 50, 100],
+        defaultColDef: {
+            sortable: true,
+            filter: true,
+            resizable: true,
+        },
+        rowHeight: 48, // Tinggi baris mirip Material Design
+    };
+
+    // Cell Renderers (Menambahkan styling Tailwind ke dalam cell AG Grid)
+    function typeBadgeRenderer(params) {
+        if (!params.value) return '';
+        return `<span class="bg-gray-200 dark:bg-gray-700 text-[rgba(0,0,0,0.87)] dark:text-white px-2.5 py-1 rounded-full text-xs">${params.value}</span>`;
+    }
+
+    function statusBadgeRenderer(params) {
+        if (!params.value) return '';
+        const status = params.value;
+        if(status === 'Completed') return `<span class="bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#1b5e20]/30 dark:text-[#a5d6a7] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+        if(status === 'Testing') return `<span class="bg-[#fff3e0] text-[#ed6c02] dark:bg-[#e65100]/30 dark:text-[#ffb74d] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+        if(status === 'In Progress') return `<span class="bg-[#e3f2fd] text-[#1976d2] dark:bg-[#0d47a1]/30 dark:text-[#90caf9] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+        return `<span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+    }
+
+    function actionButtonsRenderer(params) {
+        if (!params.data) return '';
+        const row = params.data;
+        const descSafe = (row.Description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        return `
+            <div class="flex items-center h-full gap-1 pt-1">
+                <button class="text-[#ed6c02] hover:bg-[#ed6c02]/10 p-1.5 rounded-full transition" onclick="editData('${row.ID}', '${row.Type}', '${row.Module}', '${row.Program_Name}', '${descSafe}', '${row.Status}')" title="Edit">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="text-[#d32f2f] hover:bg-[#d32f2f]/10 p-1.5 rounded-full transition" onclick="deleteData('${row.ID}')" title="Delete">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+            </div>
+        `;
+    }
+
+    // Fungsi Pencarian Cepat (Global Filter) untuk AG Grid
+    function onFilterTextBoxChanged() {
+        gridApi.setGridOption('quickFilterText', document.getElementById('filter-text-box').value);
+    }
+
+    // Menjalankan inisialisasi awal
+    document.addEventListener("DOMContentLoaded", function() {
+        const gridDiv = document.querySelector('#ricefGrid');
+        gridApi = agGrid.createGrid(gridDiv, gridOptions);
         checkLoginStatus();
     });
 
+    // --- LOGIKA SISTEM ---
     function checkLoginStatus() {
         const token = sessionStorage.getItem('authToken');
         if(token) {
@@ -246,6 +283,8 @@
         const token = sessionStorage.getItem('authToken');
         if(!token) return;
 
+        gridApi.showLoadingOverlay(); // Menampilkan animasi loading AG Grid
+
         fetch(SCRIPT_URL + '?action=read&token=' + token)
             .then(res => res.json())
             .then(res => {
@@ -255,30 +294,17 @@
                     return;
                 }
                 
-                dataTable.clear(); 
-                if(res.data && res.data.length > 0) {
-                    res.data.forEach(row => {
-                        const descSafe = (row.Description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
-                        dataTable.row.add([
-                            row.ID,
-                            `<span class="bg-gray-200 dark:bg-gray-700 text-[rgba(0,0,0,0.87)] dark:text-white px-2 py-0.5 rounded-full text-xs">${row.Type}</span>`,
-                            row.Module,
-                            `<strong class="font-medium">${row.Program_Name}</strong>`,
-                            row.Description,
-                            getStatusBadge(row.Status),
-                            `<div class="flex justify-center gap-2">
-                                <button class="text-[#ed6c02] hover:bg-[#ed6c02]/10 p-1.5 rounded-full transition" onclick="editData('${row.ID}', '${row.Type}', '${row.Module}', '${row.Program_Name}', '${descSafe}', '${row.Status}')" title="Edit">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                                </button>
-                                <button class="text-[#d32f2f] hover:bg-[#d32f2f]/10 p-1.5 rounded-full transition" onclick="deleteData('${row.ID}')" title="Delete">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                                </button>
-                            </div>`
-                        ]);
-                    });
+                // Memasukkan data ke AG Grid
+                if(res.data) {
+                    gridApi.setGridOption('rowData', res.data);
+                } else {
+                    gridApi.setGridOption('rowData', []);
                 }
-                dataTable.draw(); 
-            }).catch(err => console.error('Error:', err));
+                gridApi.hideOverlay();
+            }).catch(err => {
+                console.error('Error:', err);
+                gridApi.hideOverlay();
+            });
     }
 
     document.getElementById('ricefForm').addEventListener('submit', function(e) {
@@ -302,7 +328,7 @@
                     alert('Error: ' + res.message);
                 } else {
                     resetForm();
-                    loadData();
+                    loadData(); // Refresh grid
                 }
                 btn.disabled = false;
             }).catch(err => {
@@ -326,7 +352,7 @@
                     if(res.status === 'error') {
                         alert('Error: ' + res.message);
                     } else {
-                        loadData();
+                        loadData(); // Refresh grid
                     }
                 });
         }
@@ -350,15 +376,6 @@
         document.getElementById('ricefId').value = '';
         document.getElementById('saveBtn').innerText = "SUBMIT";
         document.getElementById('cancelBtn').classList.add('hidden');
-    }
-
-    function getStatusBadge(status) {
-        switch(status) {
-            case 'Completed': return `<span class="bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#1b5e20]/30 dark:text-[#a5d6a7] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
-            case 'Testing': return `<span class="bg-[#fff3e0] text-[#ed6c02] dark:bg-[#e65100]/30 dark:text-[#ffb74d] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
-            case 'In Progress': return `<span class="bg-[#e3f2fd] text-[#1976d2] dark:bg-[#0d47a1]/30 dark:text-[#90caf9] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
-            default: return `<span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
-        }
     }
 </script>
 
