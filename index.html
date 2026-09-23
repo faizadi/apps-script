@@ -1,123 +1,157 @@
 <!DOCTYPE html>
-<html lang="id" class="light">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen RICEF SAP</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Konfigurasi Tailwind untuk Dark Mode berbasis Class -->
+    <!-- Konfigurasi Tailwind untuk Tema Material UI -->
     <script>
         tailwind.config = {
             darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mui: {
+                            primary: '#1976d2',
+                            primaryHover: '#1565c0',
+                            darkBg: '#121212',
+                            darkSurface: '#1e1e1e',
+                        }
+                    },
+                    boxShadow: {
+                        'mui-1': '0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)',
+                        'mui-2': '0px 3px 1px -2px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 1px 5px 0px rgba(0,0,0,0.12)',
+                    }
+                }
+            }
         }
     </script>
+    <!-- Google Fonts: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- DataTables Tailwind CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.tailwindcss.css">
     
     <style>
-        /* Transisi halus saat ganti tema */
-        body { transition: background-color 0.3s ease, color 0.3s ease; }
+        body { font-family: 'Roboto', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+        /* Tweak DataTables agar lebih menyatu dengan Material Design */
+        .dt-search input, .dt-length select {
+            border: 1px solid #c4c4c4 !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+        }
+        .dark .dt-search input, .dark .dt-length select {
+            background-color: #1e1e1e !important;
+            border-color: #424242 !important;
+            color: #ffffff !important;
+        }
+        table.dataTable { border-bottom: 1px solid rgba(224, 224, 224, 1); }
+        .dark table.dataTable { border-bottom: 1px solid rgba(81, 81, 81, 1); }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans min-h-screen">
+<body class="bg-[#f5f5f6] text-[rgba(0,0,0,0.87)] dark:bg-mui-darkBg dark:text-white min-h-screen">
 
-<!-- Tombol Toggle Dark Mode Global (Pojok Kanan Atas) -->
-<div class="absolute top-4 right-4 z-50">
-    <button onclick="toggleDarkMode()" class="p-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-yellow-300 rounded-full shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition" id="themeToggleBtn">
-        🌙
-    </button>
-</div>
-
-<!-- HALAMAN LOGIN -->
-<div class="min-h-screen flex items-center justify-center p-4" id="loginPage">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md border border-gray-100 dark:border-gray-700 transition-colors">
-        <h4 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">Login RICEF Tracker</h4>
-        <form id="loginForm">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-                <input type="text" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none transition-colors" name="username" required>
-            </div>
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-                <input type="password" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none transition-colors" name="password" required>
-            </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200" id="loginBtn">Masuk</button>
-        </form>
+<!-- MATERIAL APP BAR -->
+<header class="bg-mui-primary text-white shadow-mui-2 w-full h-16 flex items-center justify-between px-6 fixed top-0 z-50">
+    <div class="text-xl font-medium tracking-wide">RICEF Tracker SAP</div>
+    <div class="flex items-center gap-4">
+        <button onclick="toggleDarkMode()" class="text-white hover:bg-white/10 p-2 rounded-full transition" id="themeToggleBtn" title="Toggle Theme">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zM12 5.5c-3.58 0-6.5 2.92-6.5 6.5s2.92 6.5 6.5 6.5 6.5-2.92 6.5-6.5S15.58 5.5 12 5.5z"/></svg>
+        </button>
+        <button onclick="logout()" class="text-sm font-medium uppercase tracking-wider text-white hover:bg-white/10 py-2 px-3 rounded transition" id="logoutBtn" style="display: none;">
+            LOGOUT
+        </button>
     </div>
-</div>
+</header>
 
-<!-- HALAMAN UTAMA APLIKASI -->
-<div class="container mx-auto px-4 py-12 max-w-6xl" id="appPage" style="display: none;">
-    <div class="flex justify-between items-center mb-8">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">RICEF Tracker SAP</h2>
-        <button class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-200 shadow-sm" onclick="logout()">Logout</button>
-    </div>
-    
-    <!-- Form Input -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
-        <form id="ricefForm">
-            <input type="hidden" id="ricefId" name="id">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
-                    <select class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" id="type" name="type" required>
-                        <option value="Report">Report</option>
-                        <option value="Interface">Interface</option>
-                        <option value="Conversion">Conversion</option>
-                        <option value="Enhancement">Enhancement</option>
-                        <option value="Form">Form</option>
-                    </select>
-                </div>
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Module</label>
-                    <input type="text" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" id="module" name="module" required>
-                </div>
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Program Name</label>
-                    <input type="text" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" id="program_name" name="program_name" required>
-                </div>
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-                    <select class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" id="status" name="status" required>
-                        <option value="Not Started">Not Started</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Testing">Testing</option>
-                        <option value="Completed">Completed</option>
-                    </select>
-                </div>
+<div class="pt-24 pb-10 px-4 md:px-8 max-w-7xl mx-auto">
+    <!-- HALAMAN LOGIN -->
+    <div class="flex items-center justify-center min-h-[70vh]" id="loginPage">
+        <div class="bg-white dark:bg-mui-darkSurface rounded shadow-mui-2 p-8 w-full max-w-sm">
+            <div class="w-12 h-12 bg-mui-primary rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-mui-1">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                <textarea class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" id="description" name="description" rows="2" required></textarea>
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-200" id="saveBtn">Simpan Data</button>
-                <button type="button" class="hidden bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded-md transition duration-200" id="cancelBtn" onclick="resetForm()">Batal</button>
-            </div>
-        </form>
+            <h4 class="text-xl font-normal text-center mb-6">Sign in</h4>
+            <form id="loginForm">
+                <div class="mb-5">
+                    <input type="text" class="w-full bg-transparent border border-gray-400 dark:border-gray-600 rounded p-3 text-base focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition" name="username" placeholder="Username" required>
+                </div>
+                <div class="mb-6">
+                    <input type="password" class="w-full bg-transparent border border-gray-400 dark:border-gray-600 rounded p-3 text-base focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="w-full bg-mui-primary hover:bg-mui-primaryHover text-white text-sm font-medium uppercase tracking-wider py-2.5 px-4 rounded shadow-mui-1 hover:shadow-mui-2 transition" id="loginBtn">SIGN IN</button>
+            </form>
+        </div>
     </div>
 
-    <!-- Table Data -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
-        <div class="overflow-x-auto">
-            <!-- DataTables secara otomatis akan mengikuti kelas dark jika <html> menggunakan class "dark" -->
-            <table id="ricefTable" class="w-full text-left border-collapse stripe hover text-gray-800 dark:text-gray-200">
-                <thead>
-                    <tr class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-b dark:border-gray-600">
-                        <th class="p-3 text-sm font-semibold">ID</th>
-                        <th class="p-3 text-sm font-semibold">Type</th>
-                        <th class="p-3 text-sm font-semibold">Module</th>
-                        <th class="p-3 text-sm font-semibold">Program Name</th>
-                        <th class="p-3 text-sm font-semibold">Description</th>
-                        <th class="p-3 text-sm font-semibold">Status</th>
-                        <th class="p-3 text-sm font-semibold">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm">
-                    <!-- Data dari Apps Script -->
-                </tbody>
-            </table>
+    <!-- HALAMAN UTAMA APLIKASI -->
+    <div id="appPage" style="display: none;">
+        <!-- Form Input Card -->
+        <div class="bg-white dark:bg-mui-darkSurface rounded shadow-mui-1 p-6 mb-6">
+            <h2 class="text-lg font-medium mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">Form Entri RICEF</h2>
+            <form id="ricefForm">
+                <input type="hidden" id="ricefId" name="id">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="col-span-1 flex flex-col">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1">Type *</label>
+                        <select class="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2.5 focus:border-mui-primary outline-none transition hover:border-gray-400" id="type" name="type" required>
+                            <option value="Report" class="dark:bg-mui-darkSurface">Report</option>
+                            <option value="Interface" class="dark:bg-mui-darkSurface">Interface</option>
+                            <option value="Conversion" class="dark:bg-mui-darkSurface">Conversion</option>
+                            <option value="Enhancement" class="dark:bg-mui-darkSurface">Enhancement</option>
+                            <option value="Form" class="dark:bg-mui-darkSurface">Form</option>
+                        </select>
+                    </div>
+                    <div class="col-span-1 flex flex-col">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1">Module *</label>
+                        <input type="text" class="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2 focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition hover:border-gray-400" id="module" name="module" required>
+                    </div>
+                    <div class="col-span-1 flex flex-col">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1">Program Name *</label>
+                        <input type="text" class="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2 focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition hover:border-gray-400" id="program_name" name="program_name" required>
+                    </div>
+                    <div class="col-span-1 flex flex-col">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1">Status *</label>
+                        <select class="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2.5 focus:border-mui-primary outline-none transition hover:border-gray-400" id="status" name="status" required>
+                            <option value="Not Started" class="dark:bg-mui-darkSurface">Not Started</option>
+                            <option value="In Progress" class="dark:bg-mui-darkSurface">In Progress</option>
+                            <option value="Testing" class="dark:bg-mui-darkSurface">Testing</option>
+                            <option value="Completed" class="dark:bg-mui-darkSurface">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col mb-6">
+                    <label class="text-xs text-gray-500 dark:text-gray-400 mb-1">Description *</label>
+                    <textarea class="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded p-2 focus:border-mui-primary focus:ring-1 focus:ring-mui-primary outline-none transition hover:border-gray-400" id="description" name="description" rows="2" required></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="bg-mui-primary hover:bg-mui-primaryHover text-white text-sm font-medium uppercase tracking-wider py-2 px-5 rounded shadow-mui-1 hover:shadow-mui-2 transition" id="saveBtn">SUBMIT</button>
+                    <button type="button" class="hidden border border-[rgba(0,0,0,0.23)] dark:border-gray-500 text-mui-primary dark:text-[#90caf9] hover:bg-[rgba(25,118,210,0.04)] text-sm font-medium uppercase tracking-wider py-2 px-5 rounded transition" id="cancelBtn" onclick="resetForm()">CANCEL</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table Data Card -->
+        <div class="bg-white dark:bg-mui-darkSurface rounded shadow-mui-1 p-6">
+            <div class="overflow-x-auto">
+                <table id="ricefTable" class="w-full text-left border-collapse text-[rgba(0,0,0,0.87)] dark:text-gray-200">
+                    <thead>
+                        <tr class="border-b border-gray-300 dark:border-gray-600">
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">ID</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">TYPE</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">MODULE</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">PROGRAM NAME</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">DESCRIPTION</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300">STATUS</th>
+                            <th class="py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-300 text-center">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm border-b border-gray-200 dark:border-gray-700">
+                        <!-- Data DataTable -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -136,10 +170,8 @@
     function applyTheme() {
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
-            document.getElementById('themeToggleBtn').innerText = '☀️';
         } else {
             document.documentElement.classList.remove('dark');
-            document.getElementById('themeToggleBtn').innerText = '🌙';
         }
     }
 
@@ -147,21 +179,18 @@
         if (document.documentElement.classList.contains('dark')) {
             document.documentElement.classList.remove('dark');
             localStorage.theme = 'light';
-            document.getElementById('themeToggleBtn').innerText = '🌙';
         } else {
             document.documentElement.classList.add('dark');
             localStorage.theme = 'dark';
-            document.getElementById('themeToggleBtn').innerText = '☀️';
         }
     }
     
-    // Terapkan tema saat pertama kali load
     applyTheme();
 
     $(document).ready(function() {
         dataTable = $('#ricefTable').DataTable({
             responsive: true,
-            language: { search: "Cari:", lengthMenu: "Tampil _MENU_ data" }
+            language: { search: "Search:", lengthMenu: "Rows per page: _MENU_" }
         });
         checkLoginStatus();
     });
@@ -171,6 +200,7 @@
         if(token) {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appPage').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'block';
             loadData();
         }
     }
@@ -180,7 +210,7 @@
         const formData = new FormData(this);
         formData.append('action', 'login');
         const btn = document.getElementById('loginBtn');
-        btn.innerText = "Memeriksa...";
+        btn.innerText = "SIGNING IN...";
         btn.disabled = true;
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData })
@@ -190,15 +220,16 @@
                     sessionStorage.setItem('authToken', res.token); 
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'block';
+                    document.getElementById('logoutBtn').style.display = 'block';
                     loadData();
                 } else {
-                    alert('Username atau Password Salah!');
+                    alert('Invalid credentials!');
                 }
-                btn.innerText = "Masuk";
+                btn.innerText = "SIGN IN";
                 btn.disabled = false;
             }).catch(err => {
-                alert('Terjadi kesalahan jaringan.');
-                btn.innerText = "Masuk";
+                alert('Network Error.');
+                btn.innerText = "SIGN IN";
                 btn.disabled = false;
             });
     });
@@ -206,6 +237,7 @@
     function logout() {
         sessionStorage.removeItem('authToken');
         document.getElementById('appPage').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('loginForm').reset();
     }
@@ -218,7 +250,7 @@
             .then(res => res.json())
             .then(res => {
                 if(res.status === 'error') {
-                    alert('Akses Ditolak: ' + res.message);
+                    alert('Access Denied: ' + res.message);
                     logout();
                     return;
                 }
@@ -229,20 +261,24 @@
                         const descSafe = (row.Description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
                         dataTable.row.add([
                             row.ID,
-                            `<span class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-2 py-1 rounded text-xs font-semibold">${row.Type}</span>`,
+                            `<span class="bg-gray-200 dark:bg-gray-700 text-[rgba(0,0,0,0.87)] dark:text-white px-2 py-0.5 rounded-full text-xs">${row.Type}</span>`,
                             row.Module,
-                            `<strong class="text-blue-600 dark:text-blue-400">${row.Program_Name}</strong>`,
+                            `<strong class="font-medium">${row.Program_Name}</strong>`,
                             row.Description,
                             getStatusBadge(row.Status),
-                            `<div class="flex gap-1">
-                                <button class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-1 px-3 rounded transition" onclick="editData('${row.ID}', '${row.Type}', '${row.Module}', '${row.Program_Name}', '${descSafe}', '${row.Status}')">Edit</button>
-                                <button class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3 rounded transition" onclick="deleteData('${row.ID}')">Hapus</button>
+                            `<div class="flex justify-center gap-2">
+                                <button class="text-[#ed6c02] hover:bg-[#ed6c02]/10 p-1.5 rounded-full transition" onclick="editData('${row.ID}', '${row.Type}', '${row.Module}', '${row.Program_Name}', '${descSafe}', '${row.Status}')" title="Edit">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                </button>
+                                <button class="text-[#d32f2f] hover:bg-[#d32f2f]/10 p-1.5 rounded-full transition" onclick="deleteData('${row.ID}')" title="Delete">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                </button>
                             </div>`
                         ]);
                     });
                 }
                 dataTable.draw(); 
-            }).catch(err => console.error('Gagal Load Data:', err));
+            }).catch(err => console.error('Error:', err));
     }
 
     document.getElementById('ricefForm').addEventListener('submit', function(e) {
@@ -256,28 +292,28 @@
         formData.append('token', token); 
 
         const btn = document.getElementById('saveBtn');
-        btn.innerText = "Menyimpan...";
+        btn.innerText = "SAVING...";
         btn.disabled = true;
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData })
             .then(res => res.json())
             .then(res => {
                 if(res.status === 'error') {
-                    alert('Gagal: ' + res.message);
+                    alert('Error: ' + res.message);
                 } else {
                     resetForm();
                     loadData();
                 }
                 btn.disabled = false;
             }).catch(err => {
-                alert("Gagal menghubungi server.");
+                alert("Server Connection Failed.");
                 btn.disabled = false;
-                btn.innerText = "Simpan Data";
+                btn.innerText = "SUBMIT";
             });
     });
 
     function deleteData(id) {
-        if(confirm('Yakin ingin menghapus RICEF ini?')) {
+        if(confirm('Are you sure you want to delete this item?')) {
             const token = sessionStorage.getItem('authToken');
             const formData = new FormData();
             formData.append('action', 'delete');
@@ -288,7 +324,7 @@
                 .then(res => res.json())
                 .then(res => {
                     if(res.status === 'error') {
-                        alert('Gagal menghapus: ' + res.message);
+                        alert('Error: ' + res.message);
                     } else {
                         loadData();
                     }
@@ -304,7 +340,7 @@
         document.getElementById('description').value = desc;
         document.getElementById('status').value = status;
         
-        document.getElementById('saveBtn').innerText = "Update Data";
+        document.getElementById('saveBtn').innerText = "UPDATE";
         document.getElementById('cancelBtn').classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -312,16 +348,16 @@
     function resetForm() {
         document.getElementById('ricefForm').reset();
         document.getElementById('ricefId').value = '';
-        document.getElementById('saveBtn').innerText = "Simpan Data";
+        document.getElementById('saveBtn').innerText = "SUBMIT";
         document.getElementById('cancelBtn').classList.add('hidden');
     }
 
     function getStatusBadge(status) {
         switch(status) {
-            case 'Completed': return `<span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded text-xs font-semibold">${status}</span>`;
-            case 'Testing': return `<span class="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-1 rounded text-xs font-semibold">${status}</span>`;
-            case 'In Progress': return `<span class="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded text-xs font-semibold">${status}</span>`;
-            default: return `<span class="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs font-semibold">${status}</span>`;
+            case 'Completed': return `<span class="bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#1b5e20]/30 dark:text-[#a5d6a7] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+            case 'Testing': return `<span class="bg-[#fff3e0] text-[#ed6c02] dark:bg-[#e65100]/30 dark:text-[#ffb74d] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+            case 'In Progress': return `<span class="bg-[#e3f2fd] text-[#1976d2] dark:bg-[#0d47a1]/30 dark:text-[#90caf9] px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
+            default: return `<span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs font-medium">${status}</span>`;
         }
     }
 </script>
