@@ -41,7 +41,7 @@
         <h2>RICEF Tracker SAP</h2>
         <button class="btn btn-danger" onclick="logout()">Logout</button>
     </div>
-
+    
     <!-- Form Input -->
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
@@ -103,7 +103,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Data akan dirender oleh DataTables melalui JS -->
+                        <!-- Data akan dirender oleh DataTables -->
                     </tbody>
                 </table>
             </div>
@@ -117,8 +117,8 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    // MASUKKAN URL WEB APP ANDA DI BAWAH INI
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzr5qb_gaV5txZdTubscB4Kbuuk3iGvktfesqkoBmcNoEch430c3w09vnDSct3cy899/exec';
+    // MASUKKAN URL DEPLOYMENT BARU ANDA DI BAWAH INI
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxM39Ofq8lLmyPbStcSIDN7QMpZ77it78P0XsxtMa3Ghp-fhYRdIXqlN8GN5cpwaBLs/exec';
     let dataTable;
 
     // Inisialisasi DataTables saat halaman dimuat
@@ -129,7 +129,8 @@
 
     // --- LOGIKA LOGIN ---
     function checkLoginStatus() {
-        if(sessionStorage.getItem('isLoggedIn') === 'true') {
+        const token = sessionStorage.getItem('authToken');
+        if(token) {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appPage').style.display = 'block';
             loadData();
@@ -146,11 +147,9 @@
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData })
             .then(res => res.json())
-            // Di dalam fetch loginForm...
             .then(res => {
                 if(res.status === 'success') {
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('authToken', res.token); // SIMPAN TOKEN DARI SERVER
+                    sessionStorage.setItem('authToken', res.token); // Simpan token keamanan
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'block';
                     loadData();
@@ -160,37 +159,38 @@
                 btn.innerText = "Masuk";
                 btn.disabled = false;
             }).catch(err => {
-                alert('Terjadi kesalahan jaringan.');
+                alert('Terjadi kesalahan. Pastikan Anda sudah New Deployment dan URL di HTML benar.');
                 btn.innerText = "Masuk";
                 btn.disabled = false;
             });
     });
 
     function logout() {
-        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('authToken');
         document.getElementById('appPage').style.display = 'none';
         document.getElementById('loginPage').style.display = 'block';
         document.getElementById('loginForm').reset();
     }
 
+    // --- LOGIKA CRUD ---
     function loadData() {
-        const token = sessionStorage.getItem('authToken'); // Ambil token
-        
-        // Selipkan token di URL
+        const token = sessionStorage.getItem('authToken');
+        if(!token) return;
+
+        // Selipkan token pada parameter URL
         fetch(SCRIPT_URL + '?action=read&token=' + token)
             .then(res => res.json())
             .then(res => {
                 if(res.status === 'error') {
-                    alert('Akses Ditolak: Anda tidak memiliki izin.');
-                    logout(); // Paksa keluar jika token salah
+                    alert('Akses Ditolak: ' + res.message);
+                    logout();
                     return;
                 }
-            .then(res => {
-                dataTable.clear(); // Bersihkan tabel sebelum mengisi data baru
-
+                
+                dataTable.clear(); 
                 if(res.data && res.data.length > 0) {
                     res.data.forEach(row => {
-                        const descSafe = (row.Description || "").replace(/'/g, "\\'");
+                        const descSafe = (row.Description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
                         dataTable.row.add([
                             row.ID,
                             `<span class="badge bg-secondary">${row.Type}</span>`,
@@ -203,39 +203,58 @@
                         ]);
                     });
                 }
-                dataTable.draw(); // Render ulang tabel
-            }).catch(err => console.error(err));
+                dataTable.draw(); 
+            }).catch(err => console.error('Gagal Load Data:', err));
     }
 
     document.getElementById('ricefForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        const token = sessionStorage.getItem('authToken');
         const id = document.getElementById('ricefId').value;
         const action = id ? 'update' : 'create';
+        
         const formData = new FormData(this);
         formData.append('action', action);
-        formData.append('token', sessionStorage.getItem('authToken')); // SELIPKAN TOKEN
+        formData.append('token', token); // Selipkan token di Payload
 
-        document.getElementById('saveBtn').innerText = "Menyimpan...";
-        document.getElementById('saveBtn').disabled = true;
+        const btn = document.getElementById('saveBtn');
+        btn.innerText = "Menyimpan...";
+        btn.disabled = true;
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData })
             .then(res => res.json())
             .then(res => {
-                resetForm();
-                loadData();
-                document.getElementById('saveBtn').disabled = false;
+                if(res.status === 'error') {
+                    alert('Gagal: ' + res.message);
+                } else {
+                    resetForm();
+                    loadData();
+                }
+                btn.disabled = false;
+            }).catch(err => {
+                alert("Gagal menghubungi server.");
+                btn.disabled = false;
+                btn.innerText = "Simpan Data";
             });
     });
 
     function deleteData(id) {
         if(confirm('Yakin ingin menghapus RICEF ini?')) {
+            const token = sessionStorage.getItem('authToken');
             const formData = new FormData();
             formData.append('action', 'delete');
             formData.append('id', id);
+            formData.append('token', token); // Selipkan token di Payload
 
             fetch(SCRIPT_URL, { method: 'POST', body: formData })
                 .then(res => res.json())
-                .then(res => loadData());
+                .then(res => {
+                    if(res.status === 'error') {
+                        alert('Gagal menghapus: ' + res.message);
+                    } else {
+                        loadData();
+                    }
+                });
         }
     }
 
@@ -246,7 +265,7 @@
         document.getElementById('program_name').value = prog_name;
         document.getElementById('description').value = desc;
         document.getElementById('status').value = status;
-
+        
         document.getElementById('saveBtn').innerText = "Update Data";
         document.getElementById('cancelBtn').classList.remove('d-none');
         window.scrollTo(0,0);
