@@ -8,6 +8,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- DataTables Tailwind CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.tailwindcss.css">
+    <!-- Tambahkan kode style ini di dalam tag <head> -->
+    <style>
+        /* Memperbaiki warna kotak pencarian dan dropdown */
+        .dt-search input, .dt-length select {
+            background-color: #ffffff !important;
+            color: #374151 !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        /* Memberikan efek fokus (ring biru) pada input */
+        .dt-search input:focus, .dt-length select:focus {
+            outline: none !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+        }
+
+        /* Memperbaiki warna teks header agar terbaca (gelap) */
+        table.dataTable thead th, table.dataTable thead td {
+            color: #374151 !important;
+        }
+
+        /* Mencerahkan warna belang-belang (striping) pada baris tabel */
+        table.dataTable.stripe > tbody > tr.odd > * {
+            box-shadow: inset 0 0 0 9999px rgba(249, 250, 251, 1) !important; /* Sangat terang (gray-50) */
+        }
+        table.dataTable.hover > tbody > tr:hover > * {
+            box-shadow: inset 0 0 0 9999px rgba(243, 244, 246, 1) !important; /* Efek hover (gray-100) */
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
