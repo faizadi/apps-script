@@ -146,9 +146,11 @@
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData })
             .then(res => res.json())
+            // Di dalam fetch loginForm...
             .then(res => {
                 if(res.status === 'success') {
                     sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('authToken', res.token); // SIMPAN TOKEN DARI SERVER
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'block';
                     loadData();
@@ -171,10 +173,18 @@
         document.getElementById('loginForm').reset();
     }
 
-    // --- LOGIKA CRUD MENGGUNAKAN DATATABLES ---
     function loadData() {
-        fetch(SCRIPT_URL + '?action=read')
+        const token = sessionStorage.getItem('authToken'); // Ambil token
+        
+        // Selipkan token di URL
+        fetch(SCRIPT_URL + '?action=read&token=' + token)
             .then(res => res.json())
+            .then(res => {
+                if(res.status === 'error') {
+                    alert('Akses Ditolak: Anda tidak memiliki izin.');
+                    logout(); // Paksa keluar jika token salah
+                    return;
+                }
             .then(res => {
                 dataTable.clear(); // Bersihkan tabel sebelum mengisi data baru
 
@@ -203,6 +213,7 @@
         const action = id ? 'update' : 'create';
         const formData = new FormData(this);
         formData.append('action', action);
+        formData.append('token', sessionStorage.getItem('authToken')); // SELIPKAN TOKEN
 
         document.getElementById('saveBtn').innerText = "Menyimpan...";
         document.getElementById('saveBtn').disabled = true;
